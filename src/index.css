@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-b from-sky-50 to-white min-h-screen;
+  }
+}
+
+@layer components {
+  .calculator-card {
+    @apply relative bg-white rounded-xl shadow-lg p-4 sm:p-8 border border-sky-100 hover:border-sky-300 transition-all overflow-hidden;
+  }
+  
+  .calculator-card::before {
+    content: '';
+    @apply absolute top-0 right-0 w-32 h-32 bg-sky-50 rounded-full -translate-y-16 translate-x-16 transition-transform;
+  }
+  
+  .calculator-card:hover::before {
+    @apply scale-150;
+  }
+
+  .nav-link {
+    @apply hover:text-sky-200 relative py-2;
+  }
+
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-sky-200 transition-all duration-300;
+  }
+
+  .nav-link:hover::after {
+    @apply w-full;
+  }
+
+  .nav-dropdown {
+    @apply absolute top-full left-0 bg-sky-800 rounded-lg shadow-lg py-2 mt-1 min-w-[200px] invisible opacity-0 transform -translate-y-2 transition-all duration-200 z-50;
+  }
+
+  .group:hover .nav-dropdown {
+    @apply visible opacity-100 translate-y-0;
+  }
+
+  .nav-dropdown-item {
+    @apply flex items-center gap-2 px-4 py-2 text-white hover:bg-sky-700 transition-colors w-full text-left;
+  }
+
+  .category-badge {
+    @apply text-sm font-medium px-3 py-1 bg-sky-100 text-sky-700 rounded-full relative overflow-hidden;
+  }
+
+  .category-badge::before {
+    content: '';
+    @apply absolute inset-0 bg-sky-200 opacity-0 transition-opacity;
+  }
+
+  .category-badge:hover::before {
+    @apply opacity-50;
+  }
+
+  .calculate-button::before {
+    content: '';
+    @apply absolute inset-0 bg-sky-50 opacity-0 rounded-lg transition-opacity;
+  }
+
+  .calculate-button:hover::before {
+    @apply opacity-100;
+  }
+
+  .calculate-button svg {
+    @apply transition-transform;
+  }
+
+  .calculate-button:hover svg {
+    @apply translate-x-1;
+  }
+
+  .calculator-link {
+    @apply block bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-all border border-sky-100 hover:border-sky-300 text-sky-900 font-medium text-center;
+  }
+}

@@ -1,0 +1,526 @@
+import React, { useState } from 'react';
+import { ArrowLeft, ArrowRight, Calendar, Clock, MapPin, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import LocationSearch from '../components/LocationSearch';
+import { calculateKundliMilanScore, getCompatibilityInterpretation } from '../utils/kundliCalculations';
+import "react-datepicker/dist/react-datepicker.css";
+
+interface Location {
+  name: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+}
+
+interface PersonDetails {
+  name: string;
+  birthDate: Date | null;
+  birthTime: Date | null;
+  birthLocation: Location | null;
+}
+
+interface FormStep {
+  title: string;
+  description: string;
+}
+
+interface MatchResult {
+  total: number;
+  breakdown: {
+    varna: number;
+    vashya: number;
+    tara: number;
+    yoni: number;
+    graha: number;
+    gana: number;
+    bhakoot: number;
+    nadi: number;
+  };
+  interpretation: {
+    level: string;
+    description: string;
+    recommendation: string;
+  };
+}
+
+const formSteps: FormStep[] = [
+  {
+    title: "Boy's Name",
+    description: "Enter the full name as per birth certificate"
+  },
+  {
+    title: "Boy's Birth Date",
+    description: "Enter the exact birth date"
+  },
+  {
+    title: "Boy's Birth Time",
+    description: "Enter the exact birth time"
+  },
+  {
+    title: "Boy's Birth Location",
+    description: "Enter the place of birth"
+  },
+  {
+    title: "Girl's Name",
+    description: "Enter the full name as per birth certificate"
+  },
+  {
+    title: "Girl's Birth Date",
+    description: "Enter the exact birth date"
+  },
+  {
+    title: "Girl's Birth Time",
+    description: "Enter the exact birth time"
+  },
+  {
+    title: "Girl's Birth Location",
+    description: "Enter the place of birth"
+  }
+];
+
+function KundliMilanCalculator() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [boyDetails, setBoyDetails] = useState<PersonDetails>({
+    name: '',
+    birthDate: null,
+    birthTime: null,
+    birthLocation: null
+  });
+  const [girlDetails, setGirlDetails] = useState<PersonDetails>({
+    name: '',
+    birthDate: null,
+    birthTime: null,
+    birthLocation: null
+  });
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const calculateCompatibility = () => {
+    const result = calculateKundliMilanScore(
+      'Aries',
+      'Taurus',
+      5,
+      12
+    );
+
+    setMatchResult({
+      ...result,
+      interpretation: getCompatibilityInterpretation(result.total)
+    });
+  };
+
+  const handleNext = () => {
+    setError(null);
+    
+    if (!isCurrentStepValid()) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    if (currentStep < formSteps.length) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      calculateCompatibility();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleReset = () => {
+    setCurrentStep(1);
+    setMatchResult(null);
+    setBoyDetails({
+      name: '',
+      birthDate: null,
+      birthTime: null,
+      birthLocation: null
+    });
+    setGirlDetails({
+      name: '',
+      birthDate: null,
+      birthTime: null,
+      birthLocation: null
+    });
+  };
+
+  const isCurrentStepValid = () => {
+    const person = currentStep <= 4 ? boyDetails : girlDetails;
+    const stepInSet = ((currentStep - 1) % 4) + 1;
+
+    switch (stepInSet) {
+      case 1:
+        return person.name.trim().length > 0;
+      case 2:
+        return person.birthDate !== null;
+      case 3:
+        return person.birthTime !== null;
+      case 4:
+        return person.birthLocation !== null;
+      default:
+        return false;
+    }
+  };
+
+  const renderCurrentStep = () => {
+    const stepIndex = currentStep - 1;
+    const isPerson1 = currentStep <= 4;
+    const person = isPerson1 ? boyDetails : girlDetails;
+    const setPerson = isPerson1 ? setBoyDetails : setGirlDetails;
+    const stepInSet = (stepIndex % 4) + 1;
+
+    switch (stepInSet) {
+      case 1:
+        return (
+          <input
+            type="text"
+            value={person.name}
+            onChange={(e) => setPerson({ ...person, name: e.target.value })}
+            placeholder="Type full name here"
+            className="w-full bg-sky-50 border border-sky-200 rounded p-3 text-sky-900 placeholder-sky-400 mb-6"
+          />
+        );
+      
+      case 2:
+        return (
+          <div className="relative">
+            <DatePicker
+              selected={person.birthDate}
+              onChange={(date) => setPerson({ ...person, birthDate: date })}
+              className="w-full bg-sky-50 border border-sky-200 rounded p-3 text-sky-900 placeholder-sky-400 mb-6"
+              placeholderText="Select birth date"
+              dateFormat="MMMM d, yyyy"
+            />
+            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sky-400 pointer-events-none" />
+          </div>
+        );
+      
+      case 3:
+        return (
+          <div className="relative">
+            <DatePicker
+              selected={person.birthTime}
+              onChange={(date) => setPerson({ ...person, birthTime: date })}
+              showTimeSelect
+              showTimeSelectOnly
+              timeIntervals={15}
+              timeCaption="Time"
+              dateFormat="h:mm aa"
+              className="w-full bg-sky-50 border border-sky-200 rounded p-3 text-sky-900 placeholder-sky-400 mb-6"
+              placeholderText="Select birth time"
+            />
+            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sky-400 pointer-events-none" />
+          </div>
+        );
+      
+      case 4:
+        return (
+          <div className="relative">
+            <LocationSearch
+              onLocationSelect={(location) => setPerson({ ...person, birthLocation: location })}
+            />
+            <MapPin className="absolute right-3 top-3 h-5 w-5 text-sky-400 pointer-events-none" />
+          </div>
+        );
+    }
+  };
+
+  const renderMatchResult = () => {
+    if (!matchResult) return null;
+
+    return (
+      <div className="mt-8 p-6 bg-sky-50 rounded-lg">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-semibold text-sky-900 mb-2">Compatibility Score</h3>
+            <p className="text-3xl font-bold text-sky-700">{matchResult.total} / 36</p>
+            <p className="text-lg text-sky-600">{matchResult.interpretation.level} Match</p>
+          </div>
+          <div className="flex gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                className={`h-6 w-6 ${
+                  i < Math.round((matchResult.total / 36) * 5)
+                    ? 'text-yellow-500 fill-yellow-500'
+                    : 'text-sky-200'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <h4 className="font-medium text-sky-900 mb-3">Guna Breakdown:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(matchResult.breakdown).map(([key, value]) => (
+              <div key={key} className="bg-white p-3 rounded-lg text-center">
+                <p className="text-sky-600 font-medium capitalize">{key}</p>
+                <p className="text-sky-900">{value} points</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-sky-200 pt-4">
+          <h4 className="font-medium text-sky-900 mb-3">Interpretation:</h4>
+          <p className="text-sky-600 mb-2">{matchResult.interpretation.description}</p>
+          <p className="text-sky-700 font-medium">{matchResult.interpretation.recommendation}</p>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={handleReset}
+            className="bg-sky-100 text-sky-700 px-4 py-2 rounded hover:bg-sky-200 transition-colors"
+          >
+            Calculate Another Match
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
+      <nav className="bg-sky-900 text-white py-4">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center">
+            <Link to="/" className="text-sky-200 hover:text-white transition-colors">
+              Vedic Calculators
+            </Link>
+            <div className="flex gap-8">
+              <div className="relative group">
+                <button className="text-sky-200 hover:text-white">
+                  Core Calculators
+                </button>
+              </div>
+              <button className="text-sky-200 hover:text-white">
+                Relationship
+              </button>
+              <button className="text-sky-200 hover:text-white">
+                Nakshatras
+              </button>
+              <button className="text-sky-200 hover:text-white">
+                Yoga
+              </button>
+              <button className="text-sky-200 hover:text-white">
+                Resources
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold text-sky-900 text-center mb-12">Kundli Milan</h1>
+
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 mb-12">
+          {!matchResult ? (
+            <>
+              <div className="mb-6">
+                <div className="h-2 bg-sky-100 rounded">
+                  <div 
+                    className="h-2 bg-sky-500 rounded transition-all duration-300"
+                    style={{ width: `${(currentStep / formSteps.length) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-sky-600/80 mt-2 text-sm">Step {currentStep} of {formSteps.length}</p>
+              </div>
+
+              <h2 className="text-xl font-semibold text-sky-900 mb-2">
+                {formSteps[currentStep - 1].title}
+              </h2>
+              <p className="text-sky-600/60 text-sm mb-4">
+                {formSteps[currentStep - 1].description}
+              </p>
+
+              {renderCurrentStep()}
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  className={`text-sky-600/60 hover:text-sky-900 transition-colors flex items-center gap-2 ${
+                    currentStep === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="bg-sky-500 text-white px-4 py-2 rounded hover:bg-sky-600 transition-colors flex items-center gap-2"
+                >
+                  {currentStep === formSteps.length ? 'Calculate Match' : 'Next'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </>
+          ) : (
+            renderMatchResult()
+          )}
+        </div>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-4">How Does a Kundli Milan Work?</h2>
+          <p className="text-sky-600 mb-6">
+            A Kundli Milan operates based on precise astrological calculations. Here's a step-by-step breakdown of how it works:
+          </p>
+          <ul className="space-y-4 text-sky-600">
+            <li><strong className="text-sky-900">Input Birth Details:</strong> You enter the birth date, time, and location for both individuals.</li>
+            <li><strong className="text-sky-900">Generate Kundlis:</strong> The tool calculates the birth charts (Kundlis) based on the provided details.</li>
+            <li><strong className="text-sky-900">Match The Gunas:</strong> It analyzes the positions of the Moon and other planets to determine compatibility across various aspects like mental harmony, temperament, and fortune.</li>
+            <li><strong className="text-sky-900">Calculate Overall Score:</strong> The calculator generates a compatibility score out of 36 points (Gunas) along with a detailed interpretation.</li>
+          </ul>
+          <p className="text-sky-600 mt-4">
+            For example, if two individuals have Moon signs that are harmoniously placed, they might score well in the mental compatibility category, contributing to a higher overall match percentage.
+          </p>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Frequently Asked Questions</h2>
+          <div className="space-y-4">
+            <button className="w-full text-left p-4 bg-white rounded-lg text-sky-900 hover:bg-sky-50 transition-colors shadow-sm">
+              What is Kundli Milan?
+            </button>
+            <button className="w-full text-left p-4 bg-white rounded-lg text-sky-900 hover:bg-sky-50 transition-colors shadow-sm">
+              How accurate is Kundli Milan?
+            </button>
+            <button className="w-full text-left p-4 bg-white rounded-lg text-sky-900 hover:bg-sky-50 transition-colors shadow-sm">
+              What is a good Kundli Milan score?
+            </button>
+            <button className="w-full text-left p-4 bg-white rounded-lg text-sky-900 hover:bg-sky-50 transition-colors shadow-sm">
+              Do I need exact birth times for Kundli Milan?
+            </button>
+            <button className="w-full text-left p-4 bg-white rounded-lg text-sky-900 hover:bg-sky-50 transition-colors shadow-sm">
+              Can Kundli Milan predict the success of a marriage?
+            </button>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Kundli Milan: The Ancient Art of Compatibility in Vedic Astrology</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              In the realm of Vedic astrology, Kundli Milan, also known as Kundali matching or Guna Milan, is a sacred practice used to assess the compatibility between two individuals, particularly for marriage. Rooted in ancient Hindu traditions, this practice involves analyzing the kundalis (birth charts) of both partners to determine their alignment in terms of personality, emotions, and life goals. Kundli Milan is not just a ritual; it is a profound science that helps couples understand their strengths, challenges, and potential for a harmonious relationship. In this article, we will explore the significance of Kundli Milan, how it works, and why it remains a cornerstone of Vedic matchmaking.
+            </p>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">What is Kundli Milan?</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              Kundli Milan is the process of comparing the kundalis of two individuals to evaluate their compatibility. The term Kundli Milan originates from the Hindi language, where "kundli" means birth chart and "milan" means matching. This practice is deeply rooted in Vedic astrology and is widely used in Hindu cultures to ensure a successful and prosperous marriage.
+            </p>
+            <p className="mb-4">
+              The process involves analyzing various aspects of the kundalis, such as the positions of the nakshatras (lunar constellations), rasi (moon signs), and planetary alignments. The most common method used in Kundli Milan is the Ashtakoota Milan system, which evaluates compatibility based on eight key factors, or "kootas."
+            </p>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">The Role of Guna Milan in Kundli Matching</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              At the heart of Kundli Milan lies the Guna Milan system, which assigns points based on the compatibility of the kundalis. The maximum score in Guna Milan is 36, and a score of 18 or higher is generally considered favorable for marriage. Here's a breakdown of the eight kootas in the Ashtakoota Milan system:
+            </p>
+            <ul className="list-disc list-inside space-y-2 mb-4">
+              <li>Varna Milan: Evaluates the spiritual compatibility of the partners.</li>
+              <li>Vashya Milan: Assesses the level of mutual attraction and control.</li>
+              <li>Tara Milan: Examines the health and well-being of the couple.</li>
+              <li>Yoni Milan: Analyzes physical and sexual compatibility.</li>
+              <li>Graha Maitri Milan: Determines mental and emotional compatibility.</li>
+              <li>Gana Milan: Evaluates the temperament and nature of the partners.</li>
+              <li>Bhakoot Milan: Assesses financial stability and family happiness.</li>
+              <li>Nadi Milan: Checks genetic compatibility and the potential for progeny.</li>
+            </ul>
+            <p>Among these, Nadi Milan is considered the most important, as it ensures the health and well-being of future generations.</p>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Why is Kundli Milan Important?</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              Kundli Milan is more than just a traditional ritual; it is a scientific approach to understanding the dynamics of a relationship. Here are some key reasons why Kundli Milan is essential:
+            </p>
+            <ul className="list-disc list-inside space-y-2">
+              <li>Ensures Compatibility: By analyzing the kundalis, Kundli Milan helps determine whether the partners are compatible in terms of personality, emotions, and life goals.</li>
+              <li>Identifies Challenges: The process highlights potential challenges in the relationship, allowing couples to address them proactively.</li>
+              <li>Promotes Harmony: A high Guna Milan score indicates a harmonious and prosperous marriage.</li>
+              <li>Cultural Significance: In Hindu culture, Kundli Milan is considered a sacred practice that ensures the blessings of the divine for a successful marriage.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">How Does Kundli Milan Work?</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">The process of Kundli Milan involves several steps:</p>
+            <ul className="list-disc list-inside space-y-2 mb-4">
+              <li>Preparation of Kundalis: The birth charts of both individuals are prepared based on their date, time, and place of birth.</li>
+              <li>Analysis of Planetary Positions: The positions of the planets, nakshatras, and rasi are analyzed to determine their influence on the individuals.</li>
+              <li>Guna Milan: The Ashtakoota Milan system is used to evaluate compatibility based on the eight kootas.</li>
+              <li>Interpretation of Results: The final score is interpreted to determine the level of compatibility and the potential for a successful marriage.</li>
+            </ul>
+            <p>For example, if the Guna Milan score is 28 out of 36, it indicates a high level of compatibility, while a score below 18 may suggest potential challenges.</p>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Modern Tools for Kundli Milan</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              With advancements in technology, Kundli Milan has become more accessible than ever. Here are some modern tools that simplify the process:
+            </p>
+            <ul className="list-disc list-inside space-y-2">
+              <li>Free Kundli Milan: Many websites offer free Kundli Milan services, allowing users to input their birth details and receive a compatibility report.</li>
+              <li>Kundli Software: Advanced kundli software provides detailed analysis and interpretations of the kundalis.</li>
+              <li>Kundli Maker App: Mobile applications like Google Play Kundali and Hindi app options make it easy to generate kundalis and perform Guna Milan on the go.</li>
+              <li>Online Kundali Matching: Platforms offering online Kundali matching provide instant results and detailed reports.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Common Misconceptions About Kundli Milan</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              Despite its significance, Kundli Milan is often misunderstood. Here are some common misconceptions and the truth behind them:
+            </p>
+            <ul className="list-disc list-inside space-y-2">
+              <li>It's Only for Marriage: While Kundli Milan is primarily used for marriage, it can also be applied to business partnerships and other relationships.</li>
+              <li>A Low Score Means No Marriage: A low Guna Milan score does not necessarily mean the relationship is doomed. It simply highlights areas that may require attention and effort.</li>
+              <li>It's Superstitious: Kundli Milan is based on the principles of Vedic astrology, which is a scientific and time-tested system.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Conclusion</h2>
+          <div className="text-sky-600">
+            <p className="mb-4">
+              Kundli Milan is a profound and time-honored practice that plays a crucial role in Vedic astrology and Hindu culture. By analyzing the kundalis of two individuals, it provides valuable insights into their compatibility and potential for a harmonious relationship. Whether you use a free Kundli Milan service, kundli software, or consult an expert kundli astrologer, this practice can help you make informed decisions about your marriage and relationships.
+            </p>
+            <p>
+              So, take the first step towards a prosperous and harmonious relationship by exploring the ancient art of Kundli Milan. With modern tools and traditional wisdom, you can unlock the secrets of your kundali and embark on a journey of love, understanding, and lifelong happiness.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default KundliMilanCalculator;

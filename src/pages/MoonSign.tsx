@@ -1,0 +1,336 @@
+import React, { useState } from 'react';
+import { ArrowLeft, HelpCircle, ArrowRight, Moon, Star, Sun } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import LocationSearch from '../components/LocationSearch';
+import Navigation from '../components/Navigation';
+import { calculateMoonSign, getRulingPlanet, getSignCharacteristics } from '../utils/astroCalculations';
+import "react-datepicker/dist/react-datepicker.css";
+
+interface Location {
+  name: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+}
+
+interface CalculationResult {
+  sign: string;
+  rulingPlanet: string;
+  element: string;
+  quality: string;
+  characteristics: string[];
+  nakshatra: string;
+  pada: number;
+}
+
+function MoonSignCalculator() {
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [birthTime, setBirthTime] = useState<Date | null>(null);
+  const [location, setLocation] = useState<Location | null>(null);
+  const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
+  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const calculateMoonSignResult = () => {
+    setError(null);
+
+    if (!birthDate || !birthTime || !location) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      // Combine date and time
+      const fullDateTime = new Date(
+        birthDate.getFullYear(),
+        birthDate.getMonth(),
+        birthDate.getDate(),
+        birthTime.getHours(),
+        birthTime.getMinutes()
+      );
+
+      // Calculate moon sign
+      const moonSign = calculateMoonSign(fullDateTime, location.latitude, location.longitude);
+      
+      // Get additional information
+      const rulingPlanet = getRulingPlanet(moonSign.sign);
+      const characteristics = getSignCharacteristics(moonSign.sign);
+
+      setCalculationResult({
+        sign: moonSign.sign,
+        rulingPlanet,
+        ...characteristics,
+        nakshatra: moonSign.nakshatra,
+        pada: moonSign.pada
+      });
+    } catch (err) {
+      setError('Error calculating moon sign. Please check your inputs and try again.');
+    }
+  };
+
+  const toggleAccordion = (id: string) => {
+    setActiveAccordion(activeAccordion === id ? null : id);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
+      <Navigation />
+      
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold text-sky-900 mb-8">Moon Sign Calculator</h1>
+
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-12">
+          <h2 className="text-2xl font-semibold text-sky-900 mb-6">Birth Details</h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Birth Date
+              </label>
+              <DatePicker
+                selected={birthDate}
+                onChange={(date) => setBirthDate(date)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                placeholderText="Select birth date"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Birth Time
+              </label>
+              <DatePicker
+                selected={birthTime}
+                onChange={(date) => setBirthTime(date)}
+                showTimeSelect
+                showTimeSelectOnly
+                timeIntervals={15}
+                timeCaption="Time"
+                dateFormat="h:mm aa"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                placeholderText="Select birth time"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Birth Location
+              </label>
+              <LocationSearch onLocationSelect={setLocation} />
+            </div>
+          </div>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={calculateMoonSignResult}
+            className="mt-8 w-full bg-sky-900 text-white px-6 py-3 rounded-lg hover:bg-sky-800 transition-colors flex items-center justify-center gap-2"
+          >
+            Calculate Moon Sign
+            <ArrowRight className="h-4 w-4" />
+          </button>
+
+          {calculationResult && (
+            <div className="mt-8 p-6 bg-sky-50 rounded-lg">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-sky-900 mb-2">Your Moon Sign is:</h3>
+                  <p className="text-3xl font-bold text-sky-700 mb-2">{calculationResult.sign}</p>
+                  <p className="text-lg text-sky-600">
+                    Ruling Planet: {calculationResult.rulingPlanet}
+                  </p>
+                  <p className="text-lg text-sky-600">
+                    Nakshatra: {calculationResult.nakshatra} (Pada {calculationResult.pada})
+                  </p>
+                </div>
+                <div className="flex gap-4">
+                  <div className="text-center">
+                    <div className="p-3 bg-sky-100 rounded-full mb-2">
+                      <Star className="h-6 w-6 text-sky-700" />
+                    </div>
+                    <p className="text-sm font-medium text-sky-900">{calculationResult.element}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="p-3 bg-sky-100 rounded-full mb-2">
+                      <Moon className="h-6 w-6 text-sky-700" />
+                    </div>
+                    <p className="text-sm font-medium text-sky-900">{calculationResult.quality}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-sky-200 pt-4">
+                <h4 className="font-medium text-sky-900 mb-3">Key Characteristics:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {calculationResult.characteristics.map((trait, index) => (
+                    <div key={index} className="bg-white p-3 rounded-lg text-center">
+                      <p className="text-sky-700">{trait}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">
+            How Does a Moon Sign Calculator Work?
+          </h2>
+          <div className="prose prose-sky max-w-none">
+            <p className="text-gray-600 mb-4">
+              A moon sign calculator operates based on precise astrological calculations. Here's a step-by-step breakdown of how it works:
+            </p>
+            <ol className="list-decimal list-inside space-y-4 text-gray-600">
+              <li>
+                <span className="font-medium">Input Birth Details:</span> You enter your birth date, exact birth time, and birth location into the calculator.
+              </li>
+              <li>
+                <span className="font-medium">Determine the Moon's Position:</span> The tool calculates the position of the moon at the time of your birth and identifies the corresponding zodiac sign.
+              </li>
+              <li>
+                <span className="font-medium">Generate Results:</span> The calculator displays your moon sign and may also provide additional details, such as the ruling planet of your moon sign and its influence on your emotions.
+              </li>
+            </ol>
+            <p className="mt-4 text-gray-600">
+              For example, if you were born on March 15th at 10:00 PM in New York, the moon sign calculator might determine that your moon sign is Aries, indicating that you have a fiery, impulsive, and passionate emotional nature.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">
+            Discover Your Emotional Blueprint with a Moon Sign Calculator
+          </h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>
+              In astrology, the moon holds a special place as the ruler of emotions, intuition, and subconscious patterns. While your sun sign represents your core identity and your rising sign reflects your outward personality, your moon sign delves into your inner world, revealing how you process emotions, nurture yourself, and connect with others. Understanding your moon sign can provide profound insights into your emotional needs and reactions. However, calculating your moon sign manually can be tricky, as the moon changes signs approximately every 2.5 days. This is where a moon sign calculator becomes an invaluable tool.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">What is a Moon Sign?</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>
+              Your moon sign is the zodiac sign in which the moon was positioned at the time of your birth. It represents your emotional nature, instincts, and how you respond to life's ups and downs. While your sun sign governs your ego and conscious self, your moon sign rules your inner world, including your feelings, memories, and subconscious mind.
+            </p>
+            <p>
+              For example, if you have a Pisces moon, you may be highly intuitive, empathetic, and dreamy. On the other hand, a Scorpio moon sign might indicate intense emotions, deep sensitivity, and a strong desire for emotional security. Each moon sign carries unique traits and symbols that shape your emotional landscape.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">The Role of a Moon Sign Calculator</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>
+              A moon sign calculator is an online tool designed to simplify the process of determining your moon sign. By inputting your birth details—such as your date, time, and place of birth—the calculator uses astrological algorithms to identify the position of the moon in your birth chart. This tool is especially helpful for those who are new to astrology or don't have access to an astrologer.
+            </p>
+            <p>
+              Many moon sign calculators are available for free online, making it easy for anyone to discover their moon sign. Some advanced sign calculators even provide additional insights, such as the placement of your sun sign, rising sign, and other planet signs in your birth chart.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Why is Your Moon Sign Important?</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>Your moon sign plays a significant role in shaping your emotional and intuitive responses. Here are some key reasons why understanding your moon sign is essential:</p>
+            <ul className="list-disc list-inside space-y-2">
+              <li><strong>Emotional Needs:</strong> Your moon sign reveals what you need to feel emotionally secure and fulfilled. For example, a Virgo moon may need order and practicality, while an Aquarius moon craves freedom and intellectual stimulation.</li>
+              <li><strong>Intuition and Subconscious:</strong> The moon sign governs your intuition and subconscious mind, influencing how you process emotions and make decisions.</li>
+              <li><strong>Relationships:</strong> Your moon sign affects how you nurture and connect with others. For instance, a Cancer moon is nurturing and protective, while a Gemini moon seeks mental stimulation and variety in relationships.</li>
+              <li><strong>Self-Care:</strong> Knowing your moon sign can help you develop self-care practices that align with your emotional needs.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Exploring Different Moon Signs</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>Each moon sign has its unique characteristics and emotional tendencies. Here's a brief overview of some possible moon signs and their traits:</p>
+            <ul className="list-disc list-inside space-y-2">
+              <li><strong>Aries Moon:</strong> Fiery, impulsive, and passionate. Individuals with an Aries moon are quick to react emotionally and thrive on excitement.</li>
+              <li><strong>Scorpio Moon:</strong> Intense, secretive, and deeply emotional. A Scorpio moon sign indicates a strong need for emotional security and transformation.</li>
+              <li><strong>Aquarius Moon:</strong> Independent, unconventional, and intellectually driven. An Aquarius moon values freedom and often approaches emotions with logic.</li>
+              <li><strong>Virgo Moon:</strong> Practical, analytical, and detail-oriented. An earth-sign Virgo moon seeks order and stability in their emotional life.</li>
+              <li><strong>Sagittarius Moon:</strong> Optimistic, adventurous, and freedom-loving. A Sagittarius moon craves exploration and new experiences.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Using a Moon Sign Calculator for Self-Discovery</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>A moon sign calculator is more than just a tool for astrologers; it's a powerful resource for anyone interested in self-discovery and emotional growth. Here's how you can use it to gain deeper insights into your life:</p>
+            <ul className="list-disc list-inside space-y-2">
+              <li><strong>Understand Your Emotional Nature:</strong> By knowing your moon sign, you can better understand your emotional responses and needs.</li>
+              <li><strong>Improve Relationships:</strong> Understanding your moon sign can help you navigate relationships more effectively by revealing how you connect emotionally with others.</li>
+              <li><strong>Develop Self-Care Practices:</strong> Your moon sign can guide you in creating self-care routines that nurture your emotional well-being.</li>
+              <li><strong>Explore Your Birth Chart:</strong> Once you know your moon sign, you can explore its placement in your birth chart and how it interacts with other planet signs, such as your Mars sign, Venus sign, and Saturn sign.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Common Misconceptions About the Moon Sign</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>Despite its importance, the moon sign is often misunderstood. Here are some common misconceptions and the truth behind them:</p>
+            <ul className="list-disc list-inside space-y-2">
+              <li><strong>It's Less Important Than the Sun Sign:</strong> While the sun sign represents your core identity, the moon sign is equally important as it governs your emotional world and subconscious mind.</li>
+              <li><strong>It's Only Relevant for Emotions:</strong> While the moon sign does influence emotions, it also affects your intuition, instincts, and how you nurture yourself and others.</li>
+              <li><strong>You Can Guess Your Moon Sign Without a Calculator:</strong> Because the moon changes signs every 2.5 days, it's impossible to determine your moon sign without knowing your exact birth time.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Other Useful Astrology Tools</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>In addition to a moon sign calculator, there are other tools that can enhance your astrological journey:</p>
+            <ul className="list-disc list-inside space-y-2">
+              <li><strong>Midpoint Calculator:</strong> This tool helps you find the midpoint between two planets or points in your birth chart, providing insights into your personality and life experiences.</li>
+              <li><strong>Nakshatra Calculator:</strong> This tool identifies your moon's nakshatra (lunar mansion), which is used in Vedic astrology to provide deeper insights into your personality and destiny.</li>
+              <li><strong>Astrology Calculators:</strong> These tools offer a range of features, from calculating your sun sign and rising sign to generating detailed birth chart reports.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Conclusion</h2>
+          <div className="prose prose-sky max-w-none text-gray-600">
+            <p>
+              Your moon sign is a vital component of your astrological profile, influencing your emotions, intuition, and subconscious mind. A moon sign calculator is an invaluable tool for discovering your moon sign and unlocking the full potential of your birth chart. Whether you're new to astrology or a seasoned enthusiast, understanding your moon sign can provide profound insights into your emotional world and help you navigate your journey with clarity and confidence.
+            </p>
+            <p>
+              So, take the first step towards self-discovery and use a moon sign calculator to uncover your individual moon sign. By doing so, you'll gain a deeper understanding of yourself and the unique symbols and emotional patterns that shape your life.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-3xl font-semibold text-sky-900 mb-6">Other Useful Astrology Tools</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Link to="/rising-sign" className="calculator-link">
+              Rising Sign Calculator
+            </Link>
+            <Link to="/sun-sign" className="calculator-link">
+              Sun Sign Calculator
+            </Link>
+            <Link to="/nakshatra" className="calculator-link">
+              Nakshatra Calculator
+            </Link>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default MoonSignCalculator;
