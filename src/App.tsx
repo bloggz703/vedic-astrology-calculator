@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Calculator, Moon, Sun, Users, Star, Cog, BookOpen, ArrowRight, Sparkles, Compass, Heart, Brain } from 'lucide-react';
-import RisingSignCalculator from './pages/RisingSign';
+import RisingSignCalculator from './pages/RisingSignCalulator';
 import MoonSignCalculator from './pages/MoonSign';
 import SunSignCalculator from './pages/SunSign';
 import KundliMilanCalculator from './pages/KundliMilan';
@@ -25,7 +25,7 @@ function App() {
     <div className="min-h-screen flex flex-col">
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/rising-sign" element={<RisingSignCalculator />} />
+        <Route path="/rising-sign-calculator" element={<RisingSignCalculator />} />
         <Route path="/moon-sign" element={<MoonSignCalculator />} />
         <Route path="/sun-sign" element={<SunSignCalculator />} />
         <Route path="/kundli-milan" element={<KundliMilanCalculator />} />
