@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Calculator, Moon, Sun, Users, Star, Cog, BookOpen, ArrowRight, Sparkles, Compass, Heart, Brain } from 'lucide-react';
-import RisingSignCalculator from './pages/RisingSignCalulator';
+import RisingSignCalculator from './pages/RisingSignCalculator';
 import MoonSignCalculator from './pages/MoonSign';
 import SunSignCalculator from './pages/SunSign';
 import KundliMilanCalculator from './pages/KundliMilan';
